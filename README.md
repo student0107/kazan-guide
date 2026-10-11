@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Казань: карта и AI-гид (демо)
 
-## Getting Started
+Демо-сайт для туристов: карта Казани (OpenStreetMap), маркеры мест, маршрут **линией по прямой** между точками (не навигатор), чат-гид на русском через [polza.ai](https://polza.ai). История диалогов — после входа по email и паролю (Supabase).
 
-First, run the development server:
+## Стек
+
+- Next.js, Leaflet, Supabase Auth + Postgres, polza.ai (OpenAI-compatible API)
+- Хостинг: [Vercel](https://vercel.com) (Hobby — бесплатно для личного демо)
+
+## Быстрый старт локально
+
+1. Клонируйте репозиторий и установите зависимости:
+
+```bash
+npm install
+```
+
+2. Скопируйте `.env.example` в `.env.local` и заполните переменные (см. ниже).
+
+3. В [Supabase](https://supabase.com) создайте проект → **SQL Editor** → выполните файл [`supabase/migrations/001_initial.sql`](supabase/migrations/001_initial.sql).
+
+4. В Supabase **Authentication → Providers** включите только **Email**, отключите Magic Link, если не нужен.
+
+5. Запуск:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Откройте [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Переменные окружения
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Переменная | Где взять |
+|------------|-----------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | там же, anon public |
+| `POLZA_API_KEY` | Личный кабинет polza.ai |
+| `POLZA_MODEL` | По умолчанию `openai/gpt-4o-mini` (экономичная текстовая модель) |
 
-## Learn More
+**Оплата:** polza.ai списывает за запросы к модели; Vercel/Supabase/OSM в рамках free tier для демо — 0 ₽.
 
-To learn more about Next.js, take a look at the following resources:
+## Деплой на Vercel
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Залейте проект на GitHub (новый репозиторий → push).
+2. [vercel.com](https://vercel.com) → **Add New Project** → импорт репозитория.
+3. **Environment Variables** — те же четыре переменные, что в `.env.local`.
+4. Deploy. После деплоя проверьте: карта, регистрация, вопрос «где поесть», страница **История**.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+В Supabase **Authentication → URL Configuration** добавьте URL сайта Vercel в **Site URL** и **Redirect URLs** (`https://ваш-проект.vercel.app/**`).
 
-## Deploy on Vercel
+## Данные о местах
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Файл [`data/poi.json`](data/poi.json) — ~25 точек (достопримечательности, кафе, бары). Координаты и описания можно править вручную.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Ограничения демо
+
+- Маршрут не по дорогам, без времени в пути и GPS-навигации.
+- AI рекомендует только места из `poi.json`.
+- Лимит чата: 20 сообщений пользователя в день (МСК).
+
+## Скрипты
+
+- `npm run dev` — разработка
+- `npm run build` — production-сборка
+- `npm run start` — запуск после build
