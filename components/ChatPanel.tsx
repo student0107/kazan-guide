@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Link from "next/link";
+import { ChatAssistantPlaces } from "@/components/ChatAssistantPlaces";
 
 export type ChatMessage = {
   role: "user" | "assistant";
@@ -18,6 +19,7 @@ type Props = {
   sessionId: string | null;
   onSessionId: (id: string) => void;
   onHighlightPoi: (ids: string[]) => void;
+  onAddToRoute: (id: string) => void;
   anchorLat: number;
   anchorLng: number;
   initialMessages?: ChatMessage[];
@@ -28,6 +30,7 @@ export function ChatPanel({
   sessionId,
   onSessionId,
   onHighlightPoi,
+  onAddToRoute,
   anchorLat,
   anchorLng,
   initialMessages = [],
@@ -133,6 +136,13 @@ export function ChatPanel({
                 }`}
               >
                 {m.content}
+                {m.role === "assistant" && m.poiIds && m.poiIds.length > 0 && (
+                  <ChatAssistantPlaces
+                    poiIds={m.poiIds}
+                    onHighlightPoi={onHighlightPoi}
+                    onAddToRoute={onAddToRoute}
+                  />
+                )}
               </div>
             ))}
             {loading && (

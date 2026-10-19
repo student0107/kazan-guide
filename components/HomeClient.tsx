@@ -161,6 +161,7 @@ export function HomeClient() {
             sessionId={chatSessionId}
             onSessionId={setChatSessionId}
             onHighlightPoi={(ids) => setHighlightIds(new Set(ids))}
+            onAddToRoute={addToRoute}
             anchorLat={anchor.lat}
             anchorLng={anchor.lng}
             initialMessages={initialChat}
