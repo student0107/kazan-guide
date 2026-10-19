@@ -9,6 +9,15 @@ export const KAZAN_BOUNDS: [[number, number], [number, number]] = [
 
 export const DEFAULT_ZOOM = 13;
 
-export const OSM_TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+const CARTO_VOYAGER_TILE =
+  "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+
+const cartoBasemapsKey = process.env.NEXT_PUBLIC_CARTO_BASEMAPS_KEY?.trim();
+
+/** Carto raster tiles require `?key=` since 2026; key from .env.local / Vercel. */
+export const OSM_TILE_URL = cartoBasemapsKey
+  ? `${CARTO_VOYAGER_TILE}?key=${encodeURIComponent(cartoBasemapsKey)}`
+  : CARTO_VOYAGER_TILE;
+
 export const OSM_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';

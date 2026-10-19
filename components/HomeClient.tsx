@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PoiFilters } from "@/components/PoiFilters";
 import { RouteList } from "@/components/RouteList";
+import { DemoRouteButton } from "@/components/DemoRouteButton";
+import { DEMO_ROUTE_IDS } from "@/lib/demo/route-ids";
 import { ChatPanel, type ChatMessage } from "@/components/ChatPanel";
 import { ALL_POI } from "@/lib/poi/data";
 import { getPoiById } from "@/lib/poi/data";
@@ -135,11 +137,18 @@ export function HomeClient() {
       <SiteHeader user={user} onSignOut={() => void handleSignOut()} />
       <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 p-4 lg:flex-row">
         <section className="flex flex-1 flex-col gap-3 lg:min-w-0">
-          <PoiFilters
-            active={categories}
-            onToggle={toggleCategory}
-            onShowAll={() => setCategories(new Set(["sight", "cafe", "bar"]))}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <PoiFilters
+              active={categories}
+              onToggle={toggleCategory}
+              onShowAll={() => setCategories(new Set(["sight", "cafe", "bar"]))}
+            />
+            <div className="ml-auto shrink-0">
+              <DemoRouteButton
+                onApply={() => setRouteIds([...DEMO_ROUTE_IDS])}
+              />
+            </div>
+          </div>
           <div className="h-[min(55vh,520px)] min-h-[360px] overflow-hidden rounded-lg border">
             <MapView
               pois={filteredPois}

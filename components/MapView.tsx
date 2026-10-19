@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   MapContainer,
   Marker,
@@ -11,6 +11,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   KAZAN_BOUNDS,
@@ -21,13 +22,39 @@ import {
 } from "@/lib/map/constants";
 import type { Poi, PoiCategory } from "@/lib/poi/types";
 
-const HIGHLIGHT_ACCENT = "#ea580c";
-
-const CATEGORY_COLOR: Record<PoiCategory, string> = {
+const MAP_COLOR_FALLBACK = {
+  mapAccent: "#c2410c",
   sight: "#2563eb",
   cafe: "#16a34a",
   bar: "#9333ea",
+} as const;
+
+const TAG_LABELS: Record<string, string> = {
+  must_see: "Главное",
 };
+
+function readMapColors(): Record<PoiCategory | "mapAccent", string> {
+  if (typeof document === "undefined") {
+    return { ...MAP_COLOR_FALLBACK };
+  }
+  const root = getComputedStyle(document.documentElement);
+  const pick = (name: string, fallback: string) =>
+    root.getPropertyValue(name).trim() || fallback;
+  return {
+    mapAccent: pick("--map-accent", MAP_COLOR_FALLBACK.mapAccent),
+    sight: pick("--poi-sight", MAP_COLOR_FALLBACK.sight),
+    cafe: pick("--poi-cafe", MAP_COLOR_FALLBACK.cafe),
+    bar: pick("--poi-bar", MAP_COLOR_FALLBACK.bar),
+  };
+}
+
+function useMapColors() {
+  const [colors, setColors] = useState(readMapColors);
+  useEffect(() => {
+    setColors(readMapColors());
+  }, []);
+  return colors;
+}
 
 type MarkerVisual = "default" | "route" | "highlight";
 
@@ -102,6 +129,16 @@ export default function MapView({
   onAddToRoute,
   onRemoveFromRoute,
 }: Props) {
+  const colors = useMapColors();
+  const categoryColor: Record<PoiCategory, string> = useMemo(
+    () => ({
+      sight: colors.sight,
+      cafe: colors.cafe,
+      bar: colors.bar,
+    }),
+    [colors]
+  );
+
   const routeSet = useMemo(() => new Set(routeIds), [routeIds]);
 
   const routePositions = useMemo((): [number, number][] => {
@@ -140,7 +177,10 @@ export default function MapView({
       )}
       {routePositions.length >= 2 && (
         <>
-          <Polyline positions={routePositions} pathOptions={{ color: HIGHLIGHT_ACCENT, weight: 4 }} />
+          <Polyline
+            positions={routePositions}
+            pathOptions={{ color: colors.mapAccent, weight: 4 }}
+          />
           <FitBoundsOnRoute positions={routePositions} />
         </>
       )}
@@ -152,7 +192,7 @@ export default function MapView({
           : inRoute
             ? "route"
             : "default";
-        const icon = makeIcon(CATEGORY_COLOR[p.category], visual);
+        const icon = makeIcon(categoryColor[p.category], visual);
         return (
           <Marker
             key={p.id}
@@ -163,7 +203,16 @@ export default function MapView({
             <Popup>
               <div className="min-w-[200px] space-y-2">
                 <p className="font-medium">{p.name}</p>
-                <p className="text-sm text-gray-600">{p.description}</p>
+                <p className="text-sm text-muted-foreground">{p.description}</p>
+                {p.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {p.tags.map((tag) => (
+                      <Badge key={tag} variant="secondary">
+                        {TAG_LABELS[tag] ?? tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
                 {inRoute ? (
                   <Button
                     type="button"

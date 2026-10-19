@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { HistoryPageShell } from "@/components/HistoryPageShell";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 /** Данные сессии зависят от cookies — не prerender */
 export const instant = false;
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function HistoryPage() {
   const supabase = await createClient();
@@ -25,16 +24,8 @@ export default async function HistoryPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div className="mx-auto min-h-screen max-w-2xl p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold">История диалогов</h1>
-        <Link
-          href="/"
-          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-        >
-          К карте
-        </Link>
-      </div>
+    <HistoryPageShell user={user}>
+      <h1 className="mb-4 text-xl font-semibold">История диалогов</h1>
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Сохранённые сессии</CardTitle>
@@ -61,6 +52,6 @@ export default async function HistoryPage() {
           ))}
         </CardContent>
       </Card>
-    </div>
+    </HistoryPageShell>
   );
 }

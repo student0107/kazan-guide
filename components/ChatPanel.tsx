@@ -9,6 +9,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import Link from "next/link";
 import { ChatAssistantPlaces } from "@/components/ChatAssistantPlaces";
 
+const CHAT_SUGGESTIONS = [
+  "Где поесть у Кремля?",
+  "Куда сходить вечером?",
+  "Что посмотреть за полдня?",
+  "Кафе на Баумана",
+] as const;
+
 export type ChatMessage = {
   role: "user" | "assistant";
   content: string;
@@ -50,13 +57,13 @@ export function ChatPanel({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  async function send() {
-    const text = input.trim();
+  async function send(messageText?: string) {
+    const text = (messageText ?? input).trim();
     if (!text || loading) return;
     if (!isLoggedIn) return;
 
     setError(null);
-    setInput("");
+    if (!messageText) setInput("");
     setMessages((m) => [...m, { role: "user", content: text }]);
     setLoading(true);
 
@@ -110,6 +117,26 @@ export function ChatPanel({
     );
   }
 
+  function SuggestionChips({ className }: { className?: string }) {
+    return (
+      <div className={cn("flex flex-wrap gap-2", className)}>
+        {CHAT_SUGGESTIONS.map((label) => (
+          <Button
+            key={label}
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={loading}
+            className="h-auto whitespace-normal py-1.5 text-left text-xs"
+            onClick={() => void send(label)}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <Card className="flex h-full min-h-[320px] flex-col shadow-sm">
       <CardHeader className="pb-2">
@@ -122,9 +149,12 @@ export function ChatPanel({
         <ScrollArea className="flex-1 rounded-md border p-3">
           <div className="space-y-3 pr-2">
             {messages.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                Например: «где поесть рядом с Кремлём» или «куда сходить вечером»
-              </p>
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Выберите пример или задайте свой вопрос:
+                </p>
+                <SuggestionChips />
+              </div>
             )}
             {messages.map((m, i) => (
               <div
@@ -170,6 +200,7 @@ export function ChatPanel({
             Отправить
           </Button>
         </form>
+        <SuggestionChips />
       </CardContent>
     </Card>
   );

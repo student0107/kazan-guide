@@ -37,8 +37,9 @@ npm run dev
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | там же, anon public |
 | `POLZA_API_KEY` | Личный кабинет polza.ai |
 | `POLZA_MODEL` | По умолчанию `openai/gpt-4o-mini` (экономичная текстовая модель) |
+| `NEXT_PUBLIC_CARTO_BASEMAPS_KEY` | Бесплатный ключ: [carto.com/basemaps/apikey](https://carto.com/basemaps/apikey/) (подложка карты Voyager) |
 
-**Оплата:** polza.ai списывает за запросы к модели; Vercel/Supabase/OSM в рамках free tier для демо — 0 ₽.
+**Оплата:** polza.ai списывает за запросы к модели; Vercel/Supabase/Carto basemaps free tier для демо — 0 ₽.
 
 ## Деплой на Vercel
 

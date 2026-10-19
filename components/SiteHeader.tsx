@@ -19,7 +19,10 @@ export function SiteHeader({ user, onSignOut }: Props) {
             Казань: карта и AI-гид
           </Link>
           <p className="text-xs text-muted-foreground">
-            Демо — не навигатор, без времени в пути
+            Карта мест и советы AI-гида по Казани
+          </p>
+          <p className="text-[11px] text-muted-foreground/80">
+            Линия маршрута — демо, не навигация
           </p>
         </div>
         <nav className="flex items-center gap-2">
