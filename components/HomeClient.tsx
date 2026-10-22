@@ -3,18 +3,38 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
+import { HomeHero } from "@/components/HomeHero";
 import { PoiFilters } from "@/components/PoiFilters";
 import { RouteList } from "@/components/RouteList";
 import { DemoRouteButton } from "@/components/DemoRouteButton";
 import { DEMO_ROUTE_IDS } from "@/lib/demo/route-ids";
 import { ChatPanel, type ChatMessage } from "@/components/ChatPanel";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MapPin } from "lucide-react";
 import { ALL_POI } from "@/lib/poi/data";
 import { getPoiById } from "@/lib/poi/data";
 import type { PoiCategory } from "@/lib/poi/types";
 import { KAZAN_CENTER } from "@/lib/map/constants";
+import { useWalkingRoute } from "@/lib/map/use-walking-route";
+import { poiWaypoints } from "@/lib/map/waypoints";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { useSearchParams } from "next/navigation";
+
+const DISTRICTS = [
+  {
+    title: "Центр / Кремль",
+    text: "Белокаменный кремль и вид на Кул-Шариф. Хорошая точка, чтобы начать прогулку.",
+  },
+  {
+    title: "Баумана",
+    text: "Пешеходная улица с кафе и магазинами. Удобно перекусить между достопримечательностями.",
+  },
+  {
+    title: "Старо-Татарская слобода",
+    text: "Тихие улочки, деревянные дома и мечети у озера Кабан. Другой ритм города рядом с центром.",
+  },
+];
 
 const MapView = dynamic(() => import("@/components/MapView"), {
   ssr: false,
@@ -100,6 +120,12 @@ export function HomeClient() {
     [routeIds]
   );
 
+  const routeWaypoints = useMemo(
+    () => poiWaypoints(routeIds, ALL_POI),
+    [routeIds]
+  );
+  const walkingRoute = useWalkingRoute(routeWaypoints);
+
   const anchor = useMemo(() => {
     const last = routePois[routePois.length - 1];
     return last
@@ -135,6 +161,7 @@ export function HomeClient() {
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader user={user} onSignOut={() => void handleSignOut()} />
+      <HomeHero />
       <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 p-4 lg:flex-row">
         <section className="flex flex-1 flex-col gap-3 lg:min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -149,17 +176,42 @@ export function HomeClient() {
               />
             </div>
           </div>
-          <div className="h-[min(55vh,520px)] min-h-[360px] overflow-hidden rounded-lg border">
-            <MapView
-              pois={filteredPois}
-              routeIds={routeIds}
-              highlightIds={highlightIds}
-              onAddToRoute={addToRoute}
-              onRemoveFromRoute={removeFromRoute}
-            />
-          </div>
+          <Card className="gap-0 overflow-hidden py-0 shadow-md">
+            <CardHeader className="py-3">
+              <CardTitle
+                id="map-heading"
+                tabIndex={-1}
+                className="flex items-center gap-2 text-base font-medium outline-none"
+              >
+                <MapPin className="size-4 text-primary" aria-hidden />
+                Карта
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-0">
+              <div
+                id="map-section"
+                tabIndex={-1}
+                className="h-[min(55vh,520px)] min-h-[360px] scroll-mt-3 overflow-hidden outline-none"
+              >
+                <MapView
+                  key={`map-${user?.id ?? "guest"}`}
+                  pois={filteredPois}
+                  routeIds={routeIds}
+                  routeLine={walkingRoute.linePositions}
+                  routeLineLoading={walkingRoute.loading}
+                  highlightIds={highlightIds}
+                  onAddToRoute={addToRoute}
+                  onRemoveFromRoute={removeFromRoute}
+                />
+              </div>
+            </CardContent>
+          </Card>
           <RouteList
             routePois={routePois}
+            routeLoading={walkingRoute.loading}
+            routeSource={walkingRoute.source}
+            routeSummary={walkingRoute.summary}
+            routeUsedFallback={walkingRoute.usedFallback}
             onRemove={removeFromRoute}
             onClear={() => setRouteIds([])}
           />
@@ -177,6 +229,55 @@ export function HomeClient() {
           />
         </aside>
       </main>
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 pt-1 pb-8">
+        <section
+          id="about-kazan"
+          tabIndex={-1}
+          aria-labelledby="about-kazan-title"
+          className="scroll-mt-4 outline-none"
+        >
+          <Card>
+            <CardHeader>
+              <h2 id="about-kazan-title" className="text-lg font-medium">
+                О городе
+              </h2>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Казанский Кремль стоит на холме у Волги: белые стены, башни и
+                мечеть Кул-Шариф с голубыми куполами. В нескольких минутах
+                пешком — улица Баумана: кафе, сувениры и спокойная прогулка по
+                центру. От Кремля удобно начать день и без спешки спуститься к
+                Баумана.
+              </p>
+            </CardContent>
+          </Card>
+        </section>
+        <section
+          id="kazan-districts"
+          tabIndex={-1}
+          aria-labelledby="kazan-districts-title"
+          className="scroll-mt-4 outline-none"
+        >
+          <h2 id="kazan-districts-title" className="mb-3 text-lg font-medium">
+            Районы
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {DISTRICTS.map((item) => (
+              <Card key={item.title} size="sm">
+                <CardHeader>
+                  <h3 className="font-medium">{item.title}</h3>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {item.text}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

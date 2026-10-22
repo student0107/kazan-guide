@@ -58,6 +58,11 @@
   --primary: oklch(0.52 0.13 42);
   --primary-foreground: oklch(0.99 0.01 42);
   --map-accent: oklch(0.58 0.13 42);
+  --hero-gradient-from: color-mix(in oklch, var(--primary) 40%, var(--background));
+  --hero-gradient-to: color-mix(in oklch, var(--primary) 8%, var(--muted));
+  --hero-scrim: oklch(0.2 0.045 42);
+  --hero-overlay: color-mix(in oklch, var(--hero-scrim) 55%, transparent);
+  --hero-foreground: var(--primary-foreground);
   --poi-sight: oklch(0.48 0.11 250);
   --poi-cafe: oklch(0.5 0.11 145);
   --poi-bar: oklch(0.48 0.12 300);
@@ -97,6 +102,11 @@
   --primary: oklch(0.65 0.12 42);
   --primary-foreground: oklch(0.18 0.02 42);
   --map-accent: oklch(0.68 0.12 42);
+  --hero-gradient-from: color-mix(in oklch, var(--primary) 24%, var(--background));
+  --hero-gradient-to: var(--background);
+  --hero-scrim: oklch(0.14 0.03 42);
+  --hero-overlay: color-mix(in oklch, var(--hero-scrim) 72%, transparent);
+  --hero-foreground: oklch(0.98 0.01 42);
   --poi-sight: oklch(0.62 0.1 250);
   --poi-cafe: oklch(0.62 0.1 145);
   --poi-bar: oklch(0.6 0.11 300);
@@ -130,11 +140,101 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background-color: var(--background);
+    background-image: linear-gradient(
+      180deg,
+      var(--background) 0%,
+      color-mix(in oklch, var(--primary) 6%, var(--muted)) 100%
+    );
   }
   html {
     @apply font-sans;
   }
+}
+
+.hero-welcome {
+  height: 220px;
+  border-bottom: 1px solid color-mix(in oklch, var(--primary) 18%, var(--border));
+  background-image: linear-gradient(
+    125deg,
+    var(--hero-gradient-from) 0%,
+    var(--hero-gradient-to) 78%
+  );
+  touch-action: pan-y;
+}
+
+@media (min-width: 768px) {
+  .hero-welcome {
+    height: clamp(280px, 52vh, 560px);
+  }
+}
+
+.hero-track {
+  transition: transform 320ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-track {
+    transition: none;
+  }
+}
+
+.hero-veil {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    var(--hero-overlay) 46%,
+    color-mix(in oklch, var(--hero-scrim) 84%, transparent) 100%
+  );
+}
+
+.hero-copy {
+  color: var(--foreground);
+}
+
+.hero-has-photo .hero-copy {
+  color: var(--hero-foreground);
+}
+
+.hero-lead {
+  color: var(--muted-foreground);
+}
+
+.hero-has-photo .hero-lead {
+  color: color-mix(in oklch, var(--hero-foreground) 90%, transparent);
+}
+
+.hero-arrow {
+  color: var(--foreground);
+  background: color-mix(in oklch, var(--background) 82%, transparent);
+  border: 1px solid color-mix(in oklch, var(--primary) 28%, var(--border));
+}
+
+.hero-has-photo .hero-arrow {
+  color: var(--hero-foreground);
+  background: color-mix(in oklch, var(--hero-scrim) 45%, transparent);
+  border-color: color-mix(in oklch, var(--hero-foreground) 45%, transparent);
+}
+
+.hero-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--foreground) 35%, transparent);
+}
+
+.hero-has-photo .hero-dot {
+  background: color-mix(in oklch, var(--hero-foreground) 50%, transparent);
+}
+
+.hero-dot[aria-current="true"] {
+  width: 1.15rem;
+  background: var(--primary);
+}
+
+.hero-has-photo .hero-dot[aria-current="true"] {
+  background: var(--hero-foreground);
 }
 
 /* Leaflet POI markers (MapView) */

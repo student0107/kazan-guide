@@ -1,6 +1,6 @@
 # Казань: карта и AI-гид (демо)
 
-Демо-сайт для туристов: карта Казани (OpenStreetMap), маркеры мест, маршрут **линией по прямой** между точками (не навигатор), чат-гид на русском через [polza.ai](https://polza.ai). История диалогов — после входа по email и паролю (Supabase).
+Демо-сайт для туристов: карта Казани (OpenStreetMap), маркеры мест, **пеший маршрут по улицам** (OpenRouteService; без ключа — линия по прямой), чат-гид на русском через [polza.ai](https://polza.ai). История диалогов — после входа по email и паролю (Supabase).
 
 ## Стек
 
@@ -38,17 +38,22 @@ npm run dev
 | `POLZA_API_KEY` | Личный кабинет polza.ai |
 | `POLZA_MODEL` | По умолчанию `openai/gpt-4o-mini` (экономичная текстовая модель) |
 | `NEXT_PUBLIC_CARTO_BASEMAPS_KEY` | Бесплатный ключ: [carto.com/basemaps/apikey](https://carto.com/basemaps/apikey/) (подложка карты Voyager) |
+| `ORS_API_KEY` | Бесплатная регистрация: [openrouteservice.org](https://openrouteservice.org/dev/#/signup) — пеший маршрут по улицам между точками |
 
-**Оплата:** polza.ai списывает за запросы к модели; Vercel/Supabase/Carto basemaps free tier для демо — 0 ₽.
+**Оплата:** polza.ai списывает за запросы к модели; Vercel/Supabase/Carto basemaps free tier для демо — 0 ₽. OpenRouteService — бесплатный лимит запросов в день (достаточно для личного демо).
 
 ## Деплой на Vercel
 
 1. Залейте проект на GitHub (новый репозиторий → push).
 2. [vercel.com](https://vercel.com) → **Add New Project** → импорт репозитория.
-3. **Environment Variables** — те же четыре переменные, что в `.env.local`.
+3. **Environment Variables** — те же переменные, что в `.env.local` (включая `ORS_API_KEY` для маршрутов по улицам).
 4. Deploy. После деплоя проверьте: карта, регистрация, вопрос «где поесть», страница **История**.
 
 В Supabase **Authentication → URL Configuration** добавьте URL сайта Vercel в **Site URL** и **Redirect URLs** (`https://ваш-проект.vercel.app/**`).
+
+## Фото на главной
+
+Блок приветствия ждёт три снимка: `public/hero/slide-1.jpg`, `slide-2.jpg`, `slide-3.jpg`. Файлов в репозитории нет специально: без них показывается терракотовый градиент. Как скачать сжатые картинки и какая лицензия — в [`public/hero/README.md`](public/hero/README.md).
 
 ## Данные о местах
 
@@ -56,7 +61,7 @@ npm run dev
 
 ## Ограничения демо
 
-- Маршрут не по дорогам, без времени в пути и GPS-навигации.
+- Маршрут пешком, без GPS-навигации «как в Яндекс.Картах»; время и длина — оценка сервиса.
 - AI рекомендует только места из `poi.json`.
 - Лимит чата: 20 сообщений пользователя в день (МСК).
 

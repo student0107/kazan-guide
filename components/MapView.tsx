@@ -20,6 +20,7 @@ import {
   OSM_ATTRIBUTION,
   OSM_TILE_URL,
 } from "@/lib/map/constants";
+import type { LatLngTuple } from "@/lib/map/waypoints";
 import type { Poi, PoiCategory } from "@/lib/poi/types";
 
 const MAP_COLOR_FALLBACK = {
@@ -54,6 +55,31 @@ function useMapColors() {
     setColors(readMapColors());
   }, []);
   return colors;
+}
+
+function MapLoadingPlaceholder() {
+  return (
+    <div className="flex h-full min-h-[360px] items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground">
+      Загрузка карты…
+    </div>
+  );
+}
+
+/** Leaflet needs a stable DOM container; defer until after client layout (incl. soft navigation). */
+function useLeafletMountReady() {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    const frame = requestAnimationFrame(() => {
+      if (!cancelled) setReady(true);
+    });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+      setReady(false);
+    };
+  }, []);
+  return ready;
 }
 
 type MarkerVisual = "default" | "route" | "highlight";
@@ -117,6 +143,8 @@ function PanToHighlights({
 type Props = {
   pois: Poi[];
   routeIds: string[];
+  routeLine: LatLngTuple[];
+  routeLineLoading?: boolean;
   highlightIds: Set<string>;
   onAddToRoute: (id: string) => void;
   onRemoveFromRoute: (id: string) => void;
@@ -125,10 +153,13 @@ type Props = {
 export default function MapView({
   pois,
   routeIds,
+  routeLine,
+  routeLineLoading = false,
   highlightIds,
   onAddToRoute,
   onRemoveFromRoute,
 }: Props) {
+  const leafletReady = useLeafletMountReady();
   const colors = useMapColors();
   const categoryColor: Record<PoiCategory, string> = useMemo(
     () => ({
@@ -141,13 +172,6 @@ export default function MapView({
 
   const routeSet = useMemo(() => new Set(routeIds), [routeIds]);
 
-  const routePositions = useMemo((): [number, number][] => {
-    return routeIds
-      .map((id) => pois.find((p) => p.id === id))
-      .filter(Boolean)
-      .map((p) => [p!.lat, p!.lng] as [number, number]);
-  }, [routeIds, pois]);
-
   const highlightKey = useMemo(
     () => [...highlightIds].sort().join(","),
     [highlightIds]
@@ -158,6 +182,10 @@ export default function MapView({
       .filter((p) => highlightIds.has(p.id))
       .map((p) => [p.lat, p.lng] as [number, number]);
   }, [pois, highlightIds]);
+
+  if (!leafletReady) {
+    return <MapLoadingPlaceholder />;
+  }
 
   return (
     <MapContainer
@@ -175,13 +203,18 @@ export default function MapView({
           triggerKey={highlightKey}
         />
       )}
-      {routePositions.length >= 2 && (
+      {routeLine.length >= 2 && (
         <>
           <Polyline
-            positions={routePositions}
-            pathOptions={{ color: colors.mapAccent, weight: 4 }}
+            positions={routeLine}
+            pathOptions={{
+              color: colors.mapAccent,
+              weight: 4,
+              opacity: routeLineLoading ? 0.55 : 1,
+              dashArray: routeLineLoading ? "8 8" : undefined,
+            }}
           />
-          <FitBoundsOnRoute positions={routePositions} />
+          <FitBoundsOnRoute positions={routeLine} />
         </>
       )}
       {pois.map((p) => {

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Link from "next/link";
 import { ChatAssistantPlaces } from "@/components/ChatAssistantPlaces";
+import { MessageCircle } from "lucide-react";
 
 const CHAT_SUGGESTIONS = [
   "Где поесть у Кремля?",
@@ -100,9 +101,12 @@ export function ChatPanel({
 
   if (!isLoggedIn) {
     return (
-      <Card className="flex h-full flex-col shadow-sm">
+      <Card className="flex h-full flex-col shadow-md">
         <CardHeader>
-          <CardTitle className="text-base">AI-гид</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <MessageCircle className="size-4 text-primary" aria-hidden />
+            AI-гид
+          </CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
           <p>Войдите, чтобы спрашивать «где поесть» и сохранять историю диалогов.</p>
@@ -138,9 +142,12 @@ export function ChatPanel({
   }
 
   return (
-    <Card className="flex h-full min-h-[320px] flex-col shadow-sm">
+    <Card className="flex h-full min-h-[320px] flex-col shadow-md">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">AI-гид по Казани</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <MessageCircle className="size-4 text-primary" aria-hidden />
+          AI-гид по Казани
+        </CardTitle>
         <p className="text-xs text-muted-foreground">
           Советы только по местам из нашей базы. Не навигатор.
         </p>

@@ -77,8 +77,9 @@ export default function LoginPage() {
       <Card>
         <CardHeader>
           <CardTitle>{mode === "login" ? "Вход" : "Регистрация"}</CardTitle>
+          <p className="text-sm font-medium">Войдите, чтобы спросить гида</p>
           <p className="text-sm text-muted-foreground">
-            Email и пароль — для сохранения истории чата с AI-гидом.
+            Email и пароль — чтобы сохранять историю чата.
           </p>
         </CardHeader>
         <CardContent>
