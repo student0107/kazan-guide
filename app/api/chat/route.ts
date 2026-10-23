@@ -1,9 +1,37 @@
 import { NextResponse } from "next/server";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { createClient } from "@/lib/supabase/server";
-import { searchPoi, matchPoiIdsInText } from "@/lib/poi/search";
+import { parseStructuredChatResponse } from "@/lib/chat/structured-response";
+import { searchPoi } from "@/lib/poi/search";
 import { createPolzaClient, getPolzaModel } from "@/lib/polza";
 
 const DAILY_LIMIT = 20;
+/** Последние реплики в контексте модели (пары user/assistant). */
+const HISTORY_MESSAGE_LIMIT = 20;
+
+type HistoryRow = { role: string; content: string };
+
+async function loadSessionHistory(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  sessionId: string
+): Promise<ChatCompletionMessageParam[]> {
+  const { data, error } = await supabase
+    .from("chat_messages")
+    .select("role, content")
+    .eq("session_id", sessionId)
+    .order("created_at", { ascending: false })
+    .limit(HISTORY_MESSAGE_LIMIT);
+
+  if (error || !data?.length) return [];
+
+  return (data as HistoryRow[])
+    .reverse()
+    .filter((m) => m.role === "user" || m.role === "assistant")
+    .map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    }));
+}
 
 function moscowDateString(): string {
   return new Intl.DateTimeFormat("en-CA", {
@@ -72,6 +100,10 @@ export async function POST(request: Request) {
       activeSessionId = created.id;
     }
 
+    if (!activeSessionId) {
+      return NextResponse.json({ error: "Не удалось создать диалог" }, { status: 500 });
+    }
+
     const candidates = searchPoi({
       query: message,
       anchorLat,
@@ -80,45 +112,78 @@ export async function POST(request: Request) {
     });
 
     const poiListText = candidates
-      .map(
-        (p) =>
-          `- id: ${p.id}; название: ${p.name}; тип: ${p.category}; описание: ${p.description}`
-      )
+      .map((p) => {
+        const dist =
+          p.distanceKm < 1
+            ? `${Math.round(p.distanceKm * 1000)} м`
+            : `${p.distanceKm.toFixed(1)} км`;
+        return `- id: ${p.id}; название: ${p.name}; тип: ${p.category}; ~${dist} от точки «рядом»; описание: ${p.description}`;
+      })
       .join("\n");
 
-    const systemPrompt = `Ты дружелюбный гид по Казани для российских туристов.
+    const allowedIds = candidates.map((p) => p.id).join(", ") || "—";
+
+    const systemPrompt = `Ты дружелюбный AI-гид по Казани для российских туристов.
 Правила:
-- Рекомендуй ТОЛЬКО места из списка ниже (по их id и названию).
-- Не придумывай новые заведения и не давай время в пути — это демо-карта, не навигатор.
-- Отвечай кратко на русском, 2–4 предложения.
-- Если список пуст или не подходит — честно скажи и предложи переформулировать.
+- Если в списке ниже есть подходящие места — порекомендуй 1–3 из них в поле reply (упомяни названия).
+- В poi_ids укажи только id из списка, которые реально рекомендуешь; иначе [].
+- Не придумывай заведения вне списка. Расстояния (~м/км) — ориентир, не маршрут и не время в пути (это демо-карта, не навигатор).
+- Поле reply: кратко на русском, 2–4 предложения.
+- Если список пуст — скажи в reply и предложи переформулировать; poi_ids: [].
+- На вопросы не про Казань (кто ты, какая модель): одно короткое предложение в reply, poi_ids: [].
+- Учитывай предыдущие сообщения: уточнения («ещё вариант», «поближе») относятся к прошлым рекомендациям.
+
+Формат ответа: один JSON-объект без markdown, строго:
+{"reply":"текст для пользователя","poi_ids":["id1","id2"]}
+Допустимые id сейчас: ${allowedIds}
 
 Список мест:
-${poiListText || "(нет подходящих мест — скажи об этом)"}`;
+${poiListText || "(список пуст — попроси уточнить запрос)"}`;
+
+    const historyMessages = await loadSessionHistory(supabase, activeSessionId);
 
     let reply: string;
+    let poiIds: string[];
     try {
       const openai = createPolzaClient();
-      const completion = await openai.chat.completions.create({
-        model: getPolzaModel(),
-        max_tokens: 700,
-        temperature: 0.6,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: message },
-        ],
-      });
-      reply =
-        completion.choices[0]?.message?.content?.trim() ??
-        "Не удалось получить ответ. Попробуйте ещё раз.";
+      const chatMessages: ChatCompletionMessageParam[] = [
+        { role: "system", content: systemPrompt },
+        ...historyMessages,
+        { role: "user", content: message },
+      ];
+
+      let rawContent: string | null | undefined;
+      try {
+        const completion = await openai.chat.completions.create({
+          model: getPolzaModel(),
+          max_tokens: 800,
+          temperature: 0.6,
+          response_format: { type: "json_object" },
+          messages: chatMessages,
+        });
+        rawContent = completion.choices[0]?.message?.content;
+      } catch {
+        const completion = await openai.chat.completions.create({
+          model: getPolzaModel(),
+          max_tokens: 800,
+          temperature: 0.6,
+          messages: chatMessages,
+        });
+        rawContent = completion.choices[0]?.message?.content;
+      }
+
+      const parsed = parseStructuredChatResponse(
+        rawContent?.trim() ?? "",
+        candidates
+      );
+      reply = parsed.reply;
+      poiIds = parsed.poiIds;
     } catch {
       return NextResponse.json(
         { error: "Сервис AI недоступен. Проверьте POLZA_API_KEY." },
         { status: 502 }
       );
     }
-
-    const poiIds = matchPoiIdsInText(reply, candidates);
 
     await supabase.from("chat_messages").insert([
       { session_id: activeSessionId, role: "user", content: message, poi_ids: [] },
